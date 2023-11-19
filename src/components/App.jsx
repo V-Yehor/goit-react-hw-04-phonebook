@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { GlobalStyle } from './GlobalStyle';
 import { ContactForm } from './ContactForm/ContactForm';
 import { ContactList } from './ContactList/ContactList';
@@ -7,92 +7,65 @@ import { nanoid } from 'nanoid';
 
 const localStorageKey = 'contact-List';
 
-export class App extends Component {
-  state = {
-    contacts: [
-      { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
-      { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
-      { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
-      { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
-    ],
-    filter: '',
-  };
-
-  componentDidMount() {
+export const App = () => {
+  const [contacts, setcontacts] = useState(() => {
     const savedContacts = window.localStorage.getItem(localStorageKey);
     if (savedContacts !== null) {
-      this.setState({ contacts: JSON.parse(savedContacts) });
+      return JSON.parse(savedContacts);
+    } else {
+      return [
+        { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
+        { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
+        { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
+        { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
+      ];
     }
-  }
+  });
+  const [filter, setfilter] = useState('');
 
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.contacts !== this.state.contacts) {
-      window.localStorage.setItem(
-        localStorageKey,
-        JSON.stringify(this.state.contacts)
-      );
-    }
-  }
+  const visibleContacts = contacts.filter(contact => {
+    const hasFilteredName = contact.name
+      .toLowerCase()
+      .includes(filter.toLowerCase());
 
-  addContact = newConact => {
-    const hasName = this.state.contacts.some(
-      contact => contact.name === newConact.name
-    );
+    return hasFilteredName;
+  });
+
+  useEffect(() => {
+    window.localStorage.setItem(localStorageKey, JSON.stringify(contacts));
+  }, [contacts]);
+
+  const addContact = newConact => {
+    const hasName = contacts.some(contact => contact.name === newConact.name);
     if (hasName) {
       alert(`${newConact.name} is already in contacts.`);
       return;
     } else {
       const contact = { ...newConact, id: nanoid() };
-      this.setState(prevState => {
-        return { contacts: [...prevState.contacts, contact] };
-      });
+      setcontacts(prevState => [...prevState, contact]);
     }
   };
 
-  setFilter = newSearch => {
-    this.setState(prevState => {
-      return { filter: newSearch };
-    });
+  const setFilter = newSearch => {
+    setfilter(newSearch);
   };
 
-  deleteContact = ContactId => {
-    this.setState(prevState => {
-      return {
-        contacts: prevState.contacts.filter(
-          contact => contact.id !== ContactId
-        ),
-      };
-    });
-  };
-
-  render() {
-    const { contacts, filter } = this.state;
-
-    const visibleContacts = contacts.filter(contact => {
-      const hasFilteredName = contact.name
-        .toLowerCase()
-        .includes(filter.toLowerCase());
-
-      return hasFilteredName;
-    });
-
-    return (
-      <div>
-        <h1>Phonebook</h1>
-        <ContactForm onSubmitForm={this.addContact} />
-
-        <h2>Contacts</h2>
-        <Filter
-          onSetFilter={this.setFilter}
-          currentFilter={this.state.filter}
-        />
-        <ContactList
-          contactInfo={visibleContacts}
-          onDelete={this.deleteContact}
-        />
-
-        <GlobalStyle />
-      </div>
+  const deleteContact = ContactId => {
+    setcontacts(prevState =>
+      prevState.filter(contact => contact.id !== ContactId)
     );
-  }
-}
+  };
+
+  return (
+    <div>
+      <h1>Phonebook</h1>
+      <ContactForm onSubmitForm={addContact} />
+
+      <h2>Contacts</h2>
+      <Filter onSetFilter={setFilter} currentFilter={filter} />
+      <ContactList contactInfo={visibleContacts} onDelete={deleteContact} />
+
+      <GlobalStyle />
+    </div>
+  );
+};
